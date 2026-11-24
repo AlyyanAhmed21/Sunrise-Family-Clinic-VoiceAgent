@@ -1,0 +1,44 @@
+[project]
+name = "sunrise-family-clinic-voice-agent"
+version = "0.1.0"
+description = "HIPAA-aware synthetic-data clinic voice-agent assessment"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "livekit-agents[deepgram]==1.8.13",
+  "livekit-plugins-silero==1.8.13",
+  "python-dotenv>=1.0.1",
+  "pydantic-settings>=2.12",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3",
+  "pytest-cov>=6.0",
+  "ruff>=0.9",
+  "mypy>=1.14",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["step0/tests", "tests"]
+addopts = "-ra"
+
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.12"
+mypy_path = "src"
+explicit_package_bases = true
+warn_return_any = true
+warn_unused_configs = true
+no_implicit_optional = true
+check_untyped_defs = true
+
+[tool.uv]
+package = false

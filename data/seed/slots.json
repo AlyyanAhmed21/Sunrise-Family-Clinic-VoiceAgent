@@ -1,0 +1,7 @@
+{
+  "available_slots": [
+    {"doctor": "Dr. Patel", "date": "2026-12-01", "times": ["9:30 AM", "11:00 AM", "3:00 PM"]},
+    {"doctor": "Dr. Lee", "date": "2026-12-02", "times": ["10:00 AM", "1:30 PM"]},
+    {"doctor": "Dr. Patel", "date": "2026-12-04", "times": ["9:00 AM", "2:30 PM"]}
+  ]
+}

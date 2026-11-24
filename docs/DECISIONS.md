@@ -118,3 +118,13 @@ Short records of decisions that affect the design. Revisit only if a Phase 0 spi
 **Decision:** Fresh setup and `make seed` fail clearly if `HASH_PEPPER` is missing; CI uses a test-only pepper. Store per-record random salt plus keyed last-four digest, never raw last-four/full SSN. DOB remains in the synthetic database and is masked in logs. Do not add a Dockerfile or Docker CI build. Production direction is container image plus PostgreSQL.
 
 **Reason:** Four-digit identifiers have tiny entropy; salt and a secret pepper are essential. Docker is outside the assessment's required scope.
+
+## ADR-023 — Confirmed Step 0 provider and voice settings
+**Decision:** Use LiveKit Agents 1.8.13, Deepgram STT/TTS, LiveKit Inference `openai/gpt-5.4-mini`, session preemptive generation disabled, `session.start(record=False)`, and LiveKit Cloud Agent observability OFF.
+
+**Reason:** The live Step 0 Agent Console call confirmed the voice loop and demo-tool path with this stack. These settings establish the implementation baseline; vendor data transit and production BAA eligibility remain explicitly subject to production review.
+
+## ADR-024 — Step 1 SQLite and verification representation
+**Decision:** Store verification only as a per-record random salt and HMAC-SHA256 digest; keep DOB plaintext in the synthetic database but redact it at logging boundaries. Use synchronous SQLite transactions behind repository protocols, with WAL and foreign-key enforcement, and keep verification/domain logic independent of providers.
+
+**Reason:** This matches the assessment's low-complexity persistence requirements while preserving a PostgreSQL-portable repository boundary. Verification compares name, DOB and keyed last-four digest against one patient record and locks after three failures.

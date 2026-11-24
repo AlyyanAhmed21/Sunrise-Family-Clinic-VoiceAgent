@@ -1,7 +1,9 @@
 # Project Status
 
-- **Current checkpoint:** Planning approved; Step 0 implementation batch prepared for local application.
-- **Done:** Requirements, architecture decisions, six-step plan, and Step 0 feasibility harness drafted.
-- **Next:** Apply the Step 0 batch, run environment setup and all local probes.
-- **Open:** Live voice, provider model/tool calls, credit headroom, region latency, cloud observability setting and live privacy-history behavior require user-environment evidence.
-- **Implementation status:** Patch prepared; not yet applied to the user's local repository and not yet verified in that environment.
+- **Current checkpoint:** Step 1 implementation batch complete.
+- **Done:** Pydantic domain models, SQLite schema and repeatable seed fixtures.
+- **Done:** Salted/keyed verification digests and server-side three-attempt lockout.
+- **Done:** Deterministic parsing, masking, audit and session persistence.
+- **Done:** Unit/security test coverage for Step 1 domain behavior.
+- **Next:** Implement Step 2 ClinicService workflows and LiveKit tools.
+- **Open:** Live verification and booking workflows remain for later steps.

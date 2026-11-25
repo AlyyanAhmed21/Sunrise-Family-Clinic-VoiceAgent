@@ -41,10 +41,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # scan the whole history, not just the last commit
-      - name: Secret scan (gitleaks)
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Scan every commit in the history. (gitleaks-action@v2 scans only the pushed
+      # range, which fails when a push includes the repository's first commit.)
+      - name: Secret scan (gitleaks, full history)
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/repo" \
+            zricethezav/gitleaks:v8.24.3 \
+            detect --source /repo --redact --verbose --exit-code 1
       - uses: astral-sh/setup-uv@v5
       - name: Dependency vulnerability audit (pip-audit)
         run: |

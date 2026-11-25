@@ -1,0 +1,32 @@
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.db
+*.sqlite
+*.sqlite3
+# SQLite write-ahead files hold recent database contents too
+*.sqlite3-wal
+*.sqlite3-shm
+*.sqlite3-journal
+*.egg-info/
+logs/
+data/out/**
+!data/out/.gitkeep
+*.log
+.DS_Store
+.idea/
+.vscode/
+
+data/outbox/**
+!data/outbox/.gitkeep
+
+# Local-only material: assignment brief, internal prompts/plans, test transcripts, spikes
+extra/

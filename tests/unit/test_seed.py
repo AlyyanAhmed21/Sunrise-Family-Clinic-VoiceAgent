@@ -1,8 +1,10 @@
+import re
+
 from clinic.persistence.db import Database
 from clinic.persistence.repositories import SQLitePatientRepository
 from clinic.persistence.seed import seed_database
 
-TEST_PEPPER = "step1-deterministic-test-pepper"
+TEST_PEPPER = "deterministic-test-pepper"
 
 
 def test_seed_has_three_exact_patients(database: Database) -> None:
@@ -30,10 +32,10 @@ def test_no_full_ssn_or_raw_last4_is_persisted(database: Database) -> None:
             "SELECT first_name, last_name, phone, last4_salt, last4_digest FROM patients"
         ).fetchall()
         medication_dump = connection.execute("SELECT name, pharmacy FROM medications").fetchall()
-    assert all("3344" not in row["last4_salt"] for row in patient_dump)
-    assert all("1020" not in row["last4_salt"] for row in patient_dump)
-    assert all("9081" not in row["last4_salt"] for row in patient_dump)
-    assert all("3344" not in row["last4_digest"] for row in patient_dump)
-    assert all("1020" not in row["last4_digest"] for row in patient_dump)
-    assert all("9081" not in row["last4_digest"] for row in patient_dump)
+    raw_last_four_values = {"3344", "1020", "9081"}
+    for row in patient_dump:
+        assert row["last4_salt"] not in raw_last_four_values
+        assert row["last4_digest"] not in raw_last_four_values
+        assert re.fullmatch(r"[0-9a-f]{64}", row["last4_digest"])
+        assert re.fullmatch(r"[0-9a-f]{32}", row["last4_salt"])
     assert len(medication_dump) == 4

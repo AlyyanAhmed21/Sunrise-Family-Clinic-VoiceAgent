@@ -1,1 +1,1 @@
-"""Step 1 clinic domain logic."""
+"""Clinic rules: office hours, identity verification and domain errors."""

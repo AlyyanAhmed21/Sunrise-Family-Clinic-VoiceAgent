@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from decimal import Decimal
 from enum import StrEnum
 from typing import Literal
 
@@ -39,6 +40,8 @@ class Patient(BaseModel):
     last_name: str = Field(min_length=1, max_length=100)
     dob: date
     phone: str = Field(min_length=5, max_length=30)
+    email: str | None = Field(default=None, max_length=254)
+    insurance: str | None = Field(default=None, max_length=200)
     medications: tuple[Medication, ...] = ()
     next_appointment: str | None = None
     lab_results_status: str = Field(max_length=200)
@@ -71,6 +74,10 @@ class CallSession(BaseModel):
     unparsed_attempts: int = Field(default=0, ge=0)
     status: SessionStatus = SessionStatus.OPEN
     simulated_time: datetime | None = None
+    pending_refill_token_digest: str | None = Field(default=None, repr=False)
+    pending_refill_medication: str | None = None
+    pending_refill_pharmacy: str | None = None
+    pending_refill_expires_at: datetime | None = None
     updated_at: datetime
 
 
@@ -104,6 +111,59 @@ class PatientRequest(BaseModel):
     created_at: datetime
     masked_summary: str = Field(max_length=500)
     status: Literal["open", "completed", "cancelled"] = "open"
+    outcome: Literal["pending", "needs_doctor_approval"] = "pending"
+    medication_name: str | None = Field(default=None, max_length=200)
+    pharmacy: str | None = Field(default=None, max_length=200)
+    callback_name: str | None = Field(default=None, max_length=200)
+    callback_phone: str | None = Field(default=None, max_length=30)
+
+
+class AppointmentSummary(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    start_at: datetime
+    doctor_name: str
+
+
+class AppointmentLookupResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    outcome: Literal["available", "no_upcoming_appointment"]
+    appointment: AppointmentSummary | None = None
+
+
+class BookingResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    patient_id: str
+    appointment: AppointmentSummary
+    email_confirmation_saved: bool
+
+
+class LabStatusResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    status: str
+
+
+class BalanceResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    amount: Decimal = Field(ge=0)
+
+
+class RefillResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    outcome: Literal[
+        "confirmation_required",
+        "medication_not_found",
+        "medication_ambiguous",
+        "pharmacy_mismatch",
+        "recorded",
+        "needs_doctor_approval",
+        "duplicate_pending",
+    ]
+    medication_name: str | None = None
+    pharmacy: str | None = None
+    refills_remaining: int | None = Field(default=None, ge=0)
+    request_id: str | None = None
+    request_outcome: Literal["pending", "needs_doctor_approval"] | None = None
+    confirmation_token: str | None = Field(default=None, exclude=True, repr=False)
 
 
 class AuditEvent(BaseModel):

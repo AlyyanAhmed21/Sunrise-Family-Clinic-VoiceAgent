@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Install dependencies
+        run: uv sync --extra dev
+      - name: Ruff (lint + bandit security rules)
+        run: uv run ruff check .
+      - name: Format check
+        run: uv run ruff format --check .
+      - name: Type check
+        run: uv run mypy src/clinic src/agent
+      - name: Tests (LLM evals excluded; they need credentials and credit)
+        env:
+          HASH_PEPPER: ci-test-pepper-not-for-production
+        run: uv run pytest -q
+      - name: Security canary and PHI handling
+        env:
+          HASH_PEPPER: ci-test-pepper-not-for-production
+        run: uv run pytest -q tests/security tests/agent/test_capture.py tests/agent/test_speech_guard.py
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # scan the whole history, not just the last commit
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: astral-sh/setup-uv@v5
+      - name: Dependency vulnerability audit (pip-audit)
+        run: |
+          uv export --frozen --no-hashes --no-emit-project --extra dev > requirements-audit.txt
+          uvx pip-audit --strict -r requirements-audit.txt

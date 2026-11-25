@@ -11,6 +11,9 @@ CREATE TABLE IF NOT EXISTS patients (
     last_name TEXT NOT NULL,
     dob TEXT NOT NULL,
     phone TEXT NOT NULL,
+    email TEXT,
+    insurance TEXT,
+    verification_ready INTEGER NOT NULL DEFAULT 1 CHECK (verification_ready IN (0,1)),
     last4_salt TEXT NOT NULL,
     last4_digest TEXT NOT NULL,
     next_appointment TEXT,
@@ -56,6 +59,10 @@ CREATE TABLE IF NOT EXISTS call_sessions (
     unparsed_attempts INTEGER NOT NULL DEFAULT 0,
     status TEXT NOT NULL CHECK (status IN ('open','locked','closed')),
     simulated_time TEXT,
+    pending_refill_token_digest TEXT,
+    pending_refill_medication TEXT,
+    pending_refill_pharmacy TEXT,
+    pending_refill_expires_at TEXT,
     updated_at TEXT NOT NULL,
     FOREIGN KEY(verified_patient_id) REFERENCES patients(patient_id)
 );
@@ -69,6 +76,13 @@ CREATE TABLE IF NOT EXISTS patient_requests (
     created_at TEXT NOT NULL,
     masked_summary TEXT NOT NULL,
     status TEXT NOT NULL CHECK (status IN ('open','completed','cancelled')),
+    outcome TEXT NOT NULL DEFAULT 'pending'
+        CHECK (outcome IN ('pending','needs_doctor_approval')),
+    medication_name TEXT,
+    pharmacy TEXT,
+    callback_name TEXT,
+    callback_phone TEXT,
+    subject_reference TEXT NOT NULL DEFAULT 'UNVERIFIED',
     FOREIGN KEY(call_id) REFERENCES call_sessions(call_id),
     FOREIGN KEY(patient_id) REFERENCES patients(patient_id)
 );
@@ -99,6 +113,68 @@ class Database:
     def create_schema(self) -> None:
         with self.connect() as connection:
             connection.executescript(SCHEMA)
+            session_columns = {
+                row["name"] for row in connection.execute("PRAGMA table_info(call_sessions)")
+            }
+            patient_columns = {
+                row["name"] for row in connection.execute("PRAGMA table_info(patients)")
+            }
+            if "email" not in patient_columns:
+                connection.execute("ALTER TABLE patients ADD COLUMN email TEXT")
+            if "insurance" not in patient_columns:
+                connection.execute("ALTER TABLE patients ADD COLUMN insurance TEXT")
+            if "verification_ready" not in patient_columns:
+                connection.execute(
+                    "ALTER TABLE patients ADD COLUMN verification_ready INTEGER NOT NULL DEFAULT 1"
+                )
+            if "pending_refill_token_digest" not in session_columns:
+                connection.execute(
+                    "ALTER TABLE call_sessions ADD COLUMN pending_refill_token_digest TEXT"
+                )
+            if "pending_refill_medication" not in session_columns:
+                connection.execute(
+                    "ALTER TABLE call_sessions ADD COLUMN pending_refill_medication TEXT"
+                )
+            if "pending_refill_pharmacy" not in session_columns:
+                connection.execute(
+                    "ALTER TABLE call_sessions ADD COLUMN pending_refill_pharmacy TEXT"
+                )
+            if "pending_refill_expires_at" not in session_columns:
+                connection.execute(
+                    "ALTER TABLE call_sessions ADD COLUMN pending_refill_expires_at TEXT"
+                )
+            request_columns = {
+                row["name"] for row in connection.execute("PRAGMA table_info(patient_requests)")
+            }
+            if "outcome" not in request_columns:
+                connection.execute(
+                    "ALTER TABLE patient_requests ADD COLUMN outcome TEXT NOT NULL "
+                    "DEFAULT 'pending'"
+                )
+            if "medication_name" not in request_columns:
+                connection.execute("ALTER TABLE patient_requests ADD COLUMN medication_name TEXT")
+            if "pharmacy" not in request_columns:
+                connection.execute("ALTER TABLE patient_requests ADD COLUMN pharmacy TEXT")
+            if "callback_name" not in request_columns:
+                connection.execute("ALTER TABLE patient_requests ADD COLUMN callback_name TEXT")
+            if "callback_phone" not in request_columns:
+                connection.execute("ALTER TABLE patient_requests ADD COLUMN callback_phone TEXT")
+            if "subject_reference" not in request_columns:
+                connection.execute(
+                    "ALTER TABLE patient_requests ADD COLUMN subject_reference TEXT "
+                    "NOT NULL DEFAULT 'UNVERIFIED'"
+                )
+            connection.execute(
+                "UPDATE patient_requests SET subject_reference = COALESCE(patient_id, 'UNVERIFIED')"
+            )
+            connection.execute(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS uq_pending_refill_per_patient
+                ON patient_requests(patient_id, medication_name COLLATE NOCASE)
+                WHERE request_type = 'refill' AND status = 'open'
+                    AND medication_name IS NOT NULL
+                """
+            )
 
     @contextmanager
     def transaction(self) -> Iterator[sqlite3.Connection]:

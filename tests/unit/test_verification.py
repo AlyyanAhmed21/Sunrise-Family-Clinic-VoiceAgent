@@ -11,7 +11,7 @@ from clinic.persistence.repositories import (
     SQLiteSessionRepository,
 )
 
-PEPPER = "step1-deterministic-test-pepper"
+PEPPER = "deterministic-test-pepper"
 
 
 def make_session() -> CallSession:

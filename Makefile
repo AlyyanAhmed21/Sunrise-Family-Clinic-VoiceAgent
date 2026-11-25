@@ -1,4 +1,6 @@
-.PHONY: setup lock seed test lint format typecheck run-agent region-probe step0-checks
+# Convenience targets for Linux/macOS (GNU Make). On Windows, run the same `uv run …`
+# commands directly; the README lists them.
+.PHONY: setup lock seed test lint format typecheck run-agent run-api show-requests show-audit reset-demo evals report
 
 setup:
 	uv sync --extra dev
@@ -7,7 +9,7 @@ lock:
 	uv lock
 
 seed:
-	uv run python -c "import sys; sys.path.insert(0, 'src'); from clinic.config import Settings; from clinic.persistence.db import Database; from clinic.persistence.seed import seed_database; s=Settings(); seed_database(Database(s.database_path), s.require_hash_pepper())"
+	uv run clinic seed
 
 test:
 	uv run pytest -q
@@ -19,15 +21,26 @@ format:
 	uv run ruff format .
 
 typecheck:
-	uv run mypy step0
+	uv run mypy src/clinic src/agent
+
+# Real LLM in text mode; uses LiveKit Inference credit, so not part of `make test` or CI.
+evals:
+	uv run --env-file .env pytest -m llm tests/evals -s
+
+report:
+	uv run clinic-report
 
 run-agent:
-	uv run python -m step0.smoke_agent dev
+	uv run --env-file .env python -m agent.main dev
 
-region-probe:
-	uv run python step0/region_probe.py
+run-api:
+	uv run --env-file .env uvicorn clinic.api.main:app --host 127.0.0.1 --port 8000
 
-step0-checks:
-	uv run python step0/check_sdk.py
-	uv run python step0/check_deepgram.py
-	uv run python step0/check_inference.py
+show-requests:
+	uv run clinic show-requests
+
+show-audit:
+	uv run clinic show-audit
+
+reset-demo:
+	uv run clinic reset-demo

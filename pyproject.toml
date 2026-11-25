@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "sunrise-family-clinic-voice-agent"
 version = "0.1.0"
@@ -8,7 +12,16 @@ dependencies = [
   "livekit-plugins-silero==1.8.13",
   "python-dotenv>=1.0.1",
   "pydantic-settings>=2.12",
+  "tzdata>=2025.2",
+  "fastapi>=0.115",
+  "uvicorn>=0.34",
+  "opentelemetry-exporter-otlp-proto-http>=1.45",
 ]
+
+[project.scripts]
+# Windows-friendly entry points (no GNU Make needed): `uv run clinic-report --all`
+clinic-report = "agent.report:main"
+clinic = "clinic.cli:main"
 
 [project.optional-dependencies]
 dev = [
@@ -20,8 +33,9 @@ dev = [
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
-testpaths = ["step0/tests", "tests"]
-addopts = "-ra"
+testpaths = ["tests"]
+addopts = "-ra -m 'not llm'"
+markers = ["llm: uses the real LLM (LiveKit Inference credit); run with `make evals`"]
 
 
 [tool.ruff]
@@ -29,7 +43,12 @@ line-length = 100
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B"]
+# S = flake8-bandit security rules (hardcoded secrets, unsafe calls, asserts used as checks).
+select = ["E", "F", "I", "UP", "B", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests use assert by design and contain obviously fake credential-shaped fixture values.
+"tests/**" = ["S101", "S105", "S106", "S108"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -41,4 +60,14 @@ no_implicit_optional = true
 check_untyped_defs = true
 
 [tool.uv]
-package = false
+package = true
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.package-data]
+"agent.prompts" = ["*.md"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["clinic*", "agent*"]
